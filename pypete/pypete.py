@@ -40,21 +40,24 @@ class Pypete(Plugin):
         super(Pypete, self).configure(options, conf)
         self.repeat = 3
         self.number = 10
+        self.results = []
 
     def prepareTestCase(self, test):
-        # TODO: add running timeit
         timing = ti.repeat(test.test, setup=test.test.setUp,
                            repeat=self.repeat, number=self.number)
-        stats = self.process_timing(timing, self.repeat, self.number)
-        log.info(stats)
+        stats = self.process_timing(test, timing, self.repeat, self.number)
+        self.results.append(stats)
 
-    def process_timing(self, timing, repeat, number):
-        stats = {'best': min(timing)/number,
+    def process_timing(self, test, timing, repeat, number):
+        stats = {'test': str(test),
+                 'best': min(timing)/number,
                  'worst': max(timing)/number,
                  'average': sum(timing)/repeat/number}
         return stats
 
     def report(self, stream):
-        # TODO: show every test performance statistics
-        pass
-
+        stream.writeln('Pypete results:')
+        stream.writeln('repeat = {1} and number = {2}'.format(len(self.results),self.repeat, self.number))
+        for r in self.results:
+            stream.writeln('{0[test]} ... best {0[best]:.6f} s, avg {0[average]:.6f} s, worst {0[worst]:.6f} s'.format(r))
+        stream.writeln('')
