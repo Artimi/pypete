@@ -41,6 +41,7 @@ class Pypete(Plugin):
         self.repeat = 3
         self.number = 10
         self.results = []
+        self.prettytable = True
 
     def prepareTestCase(self, test):
         timing = ti.repeat(test.test, setup=test.test.setUp,
@@ -58,6 +59,20 @@ class Pypete(Plugin):
     def report(self, stream):
         stream.writeln('Pypete results:')
         stream.writeln('repeat = {1} and number = {2}'.format(len(self.results),self.repeat, self.number))
-        for r in self.results:
-            stream.writeln('{0[test]} ... best {0[best]:.6f} s, avg {0[average]:.6f} s, worst {0[worst]:.6f} s'.format(r))
+        if self.prettytable:
+            try:
+                from prettytable import PrettyTable
+            except ImportError:
+                raise ImportError('PrettyTable is optional dependency download it or don\'t use it')
+            for r in self.results:
+                stream.writeln('{0[test]}: '.format(r))
+                x = PrettyTable(['Metric', 'value [s]'])
+                x.add_row(['best', '{0[best]:.6f}'.format(r)])
+                x.add_row(['avg', '{0[average]:.6f}'.format(r)])
+                x.add_row(['worst', '{0[worst]:.6f}'.format(r)])
+                stream.writeln(x.get_string())
+                stream.writeln('')
+        else:
+            for r in self.results:
+                stream.writeln('{0[test]} ... best {0[best]:.6f} s, avg {0[average]:.6f} s, worst {0[worst]:.6f} s'.format(r))
         stream.writeln('')
