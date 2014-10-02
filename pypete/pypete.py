@@ -125,7 +125,7 @@ class Pypete(Plugin):
     def update_old_test(self, test_id, old_stats, dict_experiment):
         try:
             old_test = old_stats[test_id]
-        except AttributeError:
+        except KeyError:
             return self.new_record(dict_experiment)
         old_test['last'] = dict_experiment
         if old_test['best']['avg'] > dict_experiment['avg']:
