@@ -1,47 +1,41 @@
 from __future__ import division
 import timeit as ti
-from functools import wraps, partial
-from nose.plugins.base import Plugin
 import logging
+
+from nose.plugins.base import Plugin
 
 
 log = logging.getLogger('nose.plugins.pypete')
 
-def timeit(repeat=3, number=100):
-    def decorator(f):
-        @wraps(f)
-        def wrapped_function(*args, **kwargs):
-            f_measure = partial(f, *args, **kwargs)
-            result = ti.repeat(f_measure, repeat=repeat, number=number)
-            return result
-        return wrapped_function
-    return decorator
-
-def test_class(cls):
-    '''
-    Class decorator that states that this class should be tested
-    '''
-    class NewClass(cls):
-        pypete_testing = True
-    return NewClass
-
 
 class Pypete(Plugin):
-    '''
+    """
     Nose plugin for handling performance testing
-    '''
+    """
     name = 'pypete'
 
     def options(self, parser, env):
         super(Pypete, self).options(parser, env)
-        # TODO add options
+        parser.add_option('--pypete-repeat', action='store', dest='repeat',
+                          default=3, metavar='INTEGER', type=int,
+                          help='Number of times experiment should be repeated')
+        parser.add_option('--pypete-number', action='store', dest='number',
+                          default=10, metavar='INTEGER', type=int,
+                          help='Number of times test itself should be repeated')
+        parser.add_option('--pypete-prettytable', action='store_true', dest='prettytable',
+                          default=False,
+                          help='Whether to show result in PrettyTable')
+        parser.add_option('--pypete-file', action='store', dest='file',
+                          default=None, metavar='FILE',
+                          help='Path to file to save statistics')
 
     def configure(self, options, conf):
         super(Pypete, self).configure(options, conf)
-        self.repeat = 3
-        self.number = 10
+        self.repeat = options.repeat
+        self.number = options.number
+        self.prettytable = options.prettytable
+        self.file = options.file
         self.results = []
-        self.prettytable = True
 
     def prepareTestCase(self, test):
         timing = ti.repeat(test.test, setup=test.test.setUp,
@@ -63,7 +57,7 @@ class Pypete(Plugin):
             try:
                 from prettytable import PrettyTable
             except ImportError:
-                raise ImportError('PrettyTable is optional dependency download it or don\'t use it')
+                raise ImportError('PrettyTable is optional dependency. Download it or don\'t use it')
             for r in self.results:
                 stream.writeln('{0[test]}: '.format(r))
                 x = PrettyTable(['Metric', 'value [s]'])
