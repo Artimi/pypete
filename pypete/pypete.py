@@ -18,6 +18,12 @@ class Pypete(Plugin):
     name = 'pypete'
 
     def options(self, parser, env):
+        """
+        Command line options definiton
+        :param parser: argparser instance
+        :param env: environment
+        :return:
+        """
         super(Pypete, self).options(parser, env)
         parser.add_option('--pypete-repeat', action='store', dest='repeat',
                           default=3, metavar='INTEGER', type=int,
@@ -33,6 +39,12 @@ class Pypete(Plugin):
                           help='Path to file to save statistics')
 
     def configure(self, options, conf):
+        """
+        Function for plugin configuration
+        :param options: options from command line
+        :param conf:
+        :return:
+        """
         super(Pypete, self).configure(options, conf)
         self.repeat = options.repeat
         self.number = options.number
@@ -42,12 +54,17 @@ class Pypete(Plugin):
         self.results = []
 
     def prepareTestCase(self, test):
+        """
+        Run before every test start
+        :param test:
+        :return:
+        """
         timing = ti.repeat(test.test, setup=test.test.setUp,
                            repeat=self.repeat, number=self.number)
-        stats = self.process_timing(test, timing, self.repeat, self.number)
+        stats = self._process_timing(test, timing, self.repeat, self.number)
         self.results.append(stats)
 
-    def process_timing(self, test, timing, repeat, number):
+    def _process_timing(self, test, timing, repeat, number):
         stats = {'test': test,
                  'best': min(timing)/number,
                  'worst': max(timing)/number,
@@ -56,12 +73,22 @@ class Pypete(Plugin):
 
     @property
     def old_stats(self):
+        """
+        Loads old_stats from json file if accessible
+        :return:
+        """
         if self._old_stats is None and self.file and os.path.exists(self.file):
             with open(self.file) as f:
                 self._old_stats = json.load(f)
         return self._old_stats
 
-    def table_append_collumns(self, table, old_test):
+    def table_append_columns(self, table, old_test):
+        """
+        Append columns with values from older experiments
+        :param table: PrettyTable
+        :param old_test:
+        :return:
+        """
         def add_column(measurement):
             table.add_column('{0} [s]'.format(measurement),
                              ['{0:.6f}'.format(old_test[measurement]['best']),
@@ -71,24 +98,34 @@ class Pypete(Plugin):
         add_column('best')
         add_column('worst')
 
-    def get_prettytable(self, r):
+    def get_prettytable(self, test):
+        """
+        Return string that contains PrettyTable with information about test
+        :param test:
+        :return: string with table
+        """
         try:
             from prettytable import PrettyTable
         except ImportError:
             raise ImportError('PrettyTable is optional dependency. Download it or don\'t use it')
-        test_id = r['test'].id()
+        test_id = test['test'].id()
         table = PrettyTable(['Metric', 'current [s]'])
-        table.add_row(['best', '{0[best]:.6f}'.format(r)])
-        table.add_row(['avg', '{0[average]:.6f}'.format(r)])
-        table.add_row(['worst', '{0[worst]:.6f}'.format(r)])
+        table.add_row(['best', '{0[best]:.6f}'.format(test)])
+        table.add_row(['avg', '{0[average]:.6f}'.format(test)])
+        table.add_row(['worst', '{0[worst]:.6f}'.format(test)])
         if self.old_stats is not None:
             try:
-                self.table_append_collumns(table, self.old_stats[test_id])
+                self.table_append_columns(table, self.old_stats[test_id])
             except AttributeError:
                 pass
         return table.get_string()
 
     def report(self, stream):
+        """
+        Changes resulting testing output
+        :param stream:
+        :return:
+        """
         stream.writeln('Pypete results:')
         stream.writeln('repeat = {1} and number = {2}'.format(len(self.results), self.repeat, self.number))
         if self.prettytable:
@@ -102,12 +139,17 @@ class Pypete(Plugin):
         stream.writeln('')
 
     def finalize(self, result):
+        """
+        Ran after all tests are done. If selected file option, save results of testing
+        :param result:
+        :return:
+        """
         if self.file:
             stats = self.get_stats()
             with open(self.file, 'w') as f:
                 json.dump(stats, f, indent=2)
 
-    def get_dict_experiment(self, info, test):
+    def _get_dict_experiment(self, info, test):
         return {
             'info': info,
             'best': test['best'],
@@ -115,7 +157,7 @@ class Pypete(Plugin):
             'worst': test['worst'],
         }
 
-    def new_record(self, dict_experiment):
+    def _new_record(self, dict_experiment):
         return {
             'last': dict_experiment,
             'best': dict_experiment,
@@ -123,10 +165,16 @@ class Pypete(Plugin):
         }
 
     def update_old_test(self, test_id, dict_experiment):
+        """
+        Update old test values with current result
+        :param test_id: name of test
+        :param dict_experiment: current results
+        :return:
+        """
         try:
             old_test = self.old_stats[test_id]
         except KeyError:
-            return self.new_record(dict_experiment)
+            return self._new_record(dict_experiment)
         old_test['last'] = dict_experiment
         if old_test['best']['avg'] > dict_experiment['avg']:
             old_test['best'] = dict_experiment
@@ -135,6 +183,10 @@ class Pypete(Plugin):
         return old_test
 
     def get_stats(self):
+        """
+        Return dictionary with stats to save
+        :return: dict
+        """
         result = {}
         current_date = str(datetime.datetime.now())
         info = {'date': current_date,
@@ -142,9 +194,9 @@ class Pypete(Plugin):
                 'number': self.number}
         for test in self.results:
             test_id = test['test'].id()
-            dict_experiment = self.get_dict_experiment(info, test)
+            dict_experiment = self._get_dict_experiment(info, test)
             if self.old_stats is None:
-                result[test_id] = self.new_record(dict_experiment)
+                result[test_id] = self._new_record(dict_experiment)
             else:
                 result[test_id] = self.update_old_test(test_id, dict_experiment)
         return result
