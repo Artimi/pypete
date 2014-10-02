@@ -90,29 +90,29 @@ class Pypete(Plugin):
 
     def report(self, stream):
         stream.writeln('Pypete results:')
-        stream.writeln('repeat = {1} and number = {2}'.format(len(self.results),self.repeat, self.number))
+        stream.writeln('repeat = {1} and number = {2}'.format(len(self.results), self.repeat, self.number))
         if self.prettytable:
             for r in self.results:
                 stream.writeln('{0}: '.format(str(r['test'])))
                 stream.writeln(self.get_prettytable(r))
-                stream.writeln('')
         else:
             for r in self.results:
-                stream.writeln('{0} ... best {1[best]:.6f} s, avg {1[average]:.6f} s, worst {1[worst]:.6f} s'.format(str(r['test']), r))
+                stream.writeln('{0} ... best {1[best]:.6f} s, avg {1[average]:.6f} s,'
+                               ' worst {1[worst]:.6f} s'.format(str(r['test']), r))
         stream.writeln('')
 
     def finalize(self, result):
         if self.file:
-            stats = self.get_stats(self.old_stats)
+            stats = self.get_stats()
             with open(self.file, 'w') as f:
                 json.dump(stats, f, indent=2)
 
-    def get_dict_experiment(self, info, test_stat):
+    def get_dict_experiment(self, info, test):
         return {
             'info': info,
-            'best': test_stat['best'],
-            'avg': test_stat['average'],
-            'worst': test_stat['worst'],
+            'best': test['best'],
+            'avg': test['average'],
+            'worst': test['worst'],
         }
 
     def new_record(self, dict_experiment):
@@ -122,9 +122,9 @@ class Pypete(Plugin):
             'worst': dict_experiment
         }
 
-    def update_old_test(self, test_id, old_stats, dict_experiment):
+    def update_old_test(self, test_id, dict_experiment):
         try:
-            old_test = old_stats[test_id]
+            old_test = self.old_stats[test_id]
         except KeyError:
             return self.new_record(dict_experiment)
         old_test['last'] = dict_experiment
@@ -134,21 +134,17 @@ class Pypete(Plugin):
             old_test['worst'] = dict_experiment
         return old_test
 
-
-    def get_stats(self, old_stats=None):
+    def get_stats(self):
         result = {}
-        curr_date = str(datetime.datetime.now())
-        info = {'date': curr_date,
+        current_date = str(datetime.datetime.now())
+        info = {'date': current_date,
                 'repeat': self.repeat,
                 'number': self.number}
         for test in self.results:
             test_id = test['test'].id()
             dict_experiment = self.get_dict_experiment(info, test)
-            if old_stats is None:
+            if self.old_stats is None:
                 result[test_id] = self.new_record(dict_experiment)
             else:
-                result[test_id] = self.update_old_test(test_id, old_stats, dict_experiment)
+                result[test_id] = self.update_old_test(test_id, dict_experiment)
         return result
-
-
-
