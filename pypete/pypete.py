@@ -38,6 +38,7 @@ class Pypete(Plugin):
         self.number = options.number
         self.prettytable = options.prettytable
         self.file = options.file
+        self._old_stats = None
         self.results = []
 
     def prepareTestCase(self, test):
@@ -53,21 +54,47 @@ class Pypete(Plugin):
                  'average': sum(timing)/repeat/number}
         return stats
 
+    @property
+    def old_stats(self):
+        if self._old_stats is None and self.file and os.path.exists(self.file):
+            with open(self.file) as f:
+                self._old_stats = json.load(f)
+        return self._old_stats
+
+    def table_append_collumns(self, table, old_test):
+        def add_column(measurement):
+            table.add_column('{0} [s]'.format(measurement),
+                             ['{0:.6f}'.format(old_test[measurement]['best']),
+                              '{0:.6f}'.format(old_test[measurement]['avg']),
+                              '{0:.6f}'.format(old_test[measurement]['worst'])])
+        add_column('last')
+        add_column('best')
+        add_column('worst')
+
+    def get_prettytable(self, r):
+        try:
+            from prettytable import PrettyTable
+        except ImportError:
+            raise ImportError('PrettyTable is optional dependency. Download it or don\'t use it')
+        test_id = r['test'].id()
+        table = PrettyTable(['Metric', 'current [s]'])
+        table.add_row(['best', '{0[best]:.6f}'.format(r)])
+        table.add_row(['avg', '{0[average]:.6f}'.format(r)])
+        table.add_row(['worst', '{0[worst]:.6f}'.format(r)])
+        if self.old_stats is not None:
+            try:
+                self.table_append_collumns(table, self.old_stats[test_id])
+            except AttributeError:
+                pass
+        return table.get_string()
+
     def report(self, stream):
         stream.writeln('Pypete results:')
         stream.writeln('repeat = {1} and number = {2}'.format(len(self.results),self.repeat, self.number))
         if self.prettytable:
-            try:
-                from prettytable import PrettyTable
-            except ImportError:
-                raise ImportError('PrettyTable is optional dependency. Download it or don\'t use it')
             for r in self.results:
                 stream.writeln('{0}: '.format(str(r['test'])))
-                x = PrettyTable(['Metric', 'value [s]'])
-                x.add_row(['best', '{0[best]:.6f}'.format(r)])
-                x.add_row(['avg', '{0[average]:.6f}'.format(r)])
-                x.add_row(['worst', '{0[worst]:.6f}'.format(r)])
-                stream.writeln(x.get_string())
+                stream.writeln(self.get_prettytable(r))
                 stream.writeln('')
         else:
             for r in self.results:
@@ -76,12 +103,7 @@ class Pypete(Plugin):
 
     def finalize(self, result):
         if self.file:
-            if os.path.exists(self.file):
-                with open(self.file, 'r') as f:
-                    old_stats = json.load(f)
-            else:
-                old_stats = None
-            stats = self.get_stats(old_stats)
+            stats = self.get_stats(self.old_stats)
             with open(self.file, 'w') as f:
                 json.dump(stats, f, indent=2)
 
