@@ -17,5 +17,10 @@ class BasicTest(unittest.TestCase):
     def test_fail(self):
         self.assertTrue(False)
 
+
+def test_arguments():
+    for i in range(1, 3):
+        yield time.sleep, i * 0.001
+
 if __name__ == '__main__':
     unittest.main()
