@@ -12,8 +12,6 @@ log = logging.getLogger('nose.plugins.pypete')
 
 
 #TODO: auto number
-#TODO: config from nose config file
-#TODO: sort last tests with avg/best/worst
 
 class Pypete(Plugin):
     """
