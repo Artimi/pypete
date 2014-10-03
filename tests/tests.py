@@ -1,6 +1,6 @@
 import unittest
-import pypete
 import time
+import nose
 
 
 class BasicTest(unittest.TestCase):
@@ -16,6 +16,10 @@ class BasicTest(unittest.TestCase):
 
     def test_fail(self):
         self.assertTrue(False)
+
+    @nose.tools.timed(0.001)
+    def test_timed(self):
+        time.sleep(0.01)
 
 
 def test_arguments():
