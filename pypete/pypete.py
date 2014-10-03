@@ -11,6 +11,10 @@ from nose.plugins.base import Plugin
 log = logging.getLogger('nose.plugins.pypete')
 
 
+#TODO: auto number
+#TODO: config from nose config file
+#TODO: sort last tests with avg/best/worst
+
 class Pypete(Plugin):
     """
     Nose plugin for handling performance testing
@@ -116,7 +120,7 @@ class Pypete(Plugin):
         if self.old_stats is not None:
             try:
                 self.table_append_columns(table, self.old_stats[test_id])
-            except AttributeError:
+            except KeyError:
                 pass
         return table.get_string()
 
