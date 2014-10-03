@@ -4,14 +4,13 @@ import logging
 import os.path
 import json
 import datetime
+import math
 
 from nose.plugins.base import Plugin
 
 
 log = logging.getLogger('nose.plugins.pypete')
 
-
-#TODO: auto number
 
 class Pypete(Plugin):
     """
@@ -31,14 +30,17 @@ class Pypete(Plugin):
                           default=3, metavar='INTEGER', type=int,
                           help='Number of times experiment should be repeated')
         parser.add_option('--pypete-number', action='store', dest='number',
-                          default=10, metavar='INTEGER', type=int,
-                          help='Number of times test itself should be repeated')
+                          default=0, metavar='INTEGER', type=int,
+                          help='Number of times test itself should be repeated, 0 means auto')
         parser.add_option('--pypete-prettytable', action='store_true', dest='prettytable',
                           default=False,
                           help='Whether to show result in PrettyTable')
         parser.add_option('--pypete-file', action='store', dest='file',
                           default=None, metavar='FILE',
                           help='Path to file to save statistics')
+        parser.add_option('--pypete-threshold', action='store', dest='threshold',
+                          default=0.1, metavar='THRESHOLD', type=float,
+                          help='Seconds to perform test with number set to auto')
 
     def configure(self, options, conf):
         """
@@ -52,8 +54,20 @@ class Pypete(Plugin):
         self.number = options.number
         self.prettytable = options.prettytable
         self.file = options.file
+        self.threshold = options.threshold
         self._old_stats = None
         self.results = []
+
+    def determine_number(self, test):
+        """
+        Determine number so that it is bigger than threshold
+        :param test:
+        :return:
+        """
+        init_number = 3
+        x = ti.timeit(test.test, number=init_number, setup=test.test.setUp)
+        number = int(math.ceil(self.threshold/(x / init_number)))
+        return number
 
     def prepareTestCase(self, test):
         """
@@ -61,9 +75,13 @@ class Pypete(Plugin):
         :param test:
         :return:
         """
+        if self.number == 0:
+            number = self.determine_number(test)
+        else:
+            number = self.number
         timing = ti.repeat(test.test, setup=test.test.setUp,
-                           repeat=self.repeat, number=self.number)
-        stats = self._process_timing(test, timing, self.repeat, self.number)
+                           repeat=self.repeat, number=number)
+        stats = self._process_timing(test, timing, self.repeat, number)
         self.results.append(stats)
 
     def _process_timing(self, test, timing, repeat, number):
