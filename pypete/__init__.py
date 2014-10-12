@@ -1,3 +1,3 @@
 __author__ = 'psebek'
 
-from pypete import Pypete
+from pypete.pypete import Pypete
