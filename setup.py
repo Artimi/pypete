@@ -7,7 +7,8 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read().strip()
 
 
-setup(name='Pypete',
+setup(name='pypete',
+      packages=['pypete'],
       version='0.1',
       author='Petr Šebek',
       author_email='petrsebek1@gmail.com',
