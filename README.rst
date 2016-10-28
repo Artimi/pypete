@@ -1,6 +1,10 @@
 Pypete - Python Performance Test
 ================================
 
+----
+This project is no longer maintained. Consider using much more mature [pytest-benchmark](https://github.com/ionelmc/pytest-benchmark) for py.test.
+---
+
 This plugin helps writing performance tests in traditional nosetests way. To
 turn it use the ``--with-pypete`` argument in running nosetests in command
 line.
